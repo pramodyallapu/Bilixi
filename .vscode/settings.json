@@ -1,0 +1,7 @@
+{
+    "vscode-pets.theme": "beach",
+    "workbench.preferredDarkColorTheme": "Visual Studio Dark",
+    "vscode-pets.petColor": "orange",
+    "vscode-pets.petSize": "large",
+    "vscode-pets.throwBallWithMouse": true
+}
