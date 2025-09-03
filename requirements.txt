@@ -5,3 +5,4 @@ pandas
 PyMuPDF
 pdfplumber
 openpyxl
+PyPDF2
