@@ -150,20 +150,61 @@ def parse_complete_pattern(line_content, account, patient):
     if not extracted_data['DOS']:
         return False, extracted_data
         
-    # Find the position after the selected date in tokens
-    tokens = line_content.split()
+    # Remove all dates from line content to get clean text for insurance parsing
+    clean_content = line_content
+    for date in all_dates:
+        clean_content = clean_content.replace(date, ' ')
+    
+    # Clean up extra spaces and split into tokens
+    clean_tokens = [token for token in clean_content.split() if token.strip()]
+    
+    # Find insurance company - collect tokens until we hit Pri/Sec/Oth
     i = 0
-    for idx, token in enumerate(tokens):
-        if token == extracted_data['DOS']:
-            i = idx + 1
+    insurance_parts = []
+    while i < len(clean_tokens) and clean_tokens[i] not in ['Pri', 'Sec', 'Oth']:
+        insurance_parts.append(clean_tokens[i])
+        i += 1
+    
+    # Join the insurance parts
+    insurance_name = ' '.join(insurance_parts)
+    
+    # Clean up the insurance name - remove account numbers and patient names
+    insurance_tokens = insurance_name.split()
+    cleaned_insurance_tokens = []
+    
+    # Common insurance company keywords to look for
+    insurance_keywords = ['BLUE', 'CROSS', 'SHIELD', 'MEDICARE', 'MEDICAID', 'AETNA', 
+                         'UNITED', 'HEALTH', 'CIGNA', 'HUMANA', 'ANTHEM', 'WELLCARE',
+                         'CENTENE', 'MOLINA', 'KAISER', 'TRICARE', 'FEDERAL', 'COMMUNITY','SELECTIVE' ,'ADMINISTRATIV'
+                         'MISSISSIPP', 'MISSISSIPPI', 'CARE', 'PLUS', 'PLAN', 'GROUP']
+    
+    # Find the start of the actual insurance company name
+    start_index = 0
+    for i, token in enumerate(insurance_tokens):
+        if token in insurance_keywords or any(keyword in token for keyword in insurance_keywords):
+            start_index = i
             break
     
-    # Collect insurance name until we hit Pri/Sec/Oth
-    insurance_parts = []
-    while i < len(tokens) and tokens[i] not in ['Pri', 'Sec', 'Oth']:
-        insurance_parts.append(tokens[i])
-        i += 1
-    extracted_data['Insurance Company'] = ' '.join(insurance_parts)
+    # Only keep tokens from the insurance keyword onward
+    cleaned_insurance_tokens = insurance_tokens[start_index:]
+    
+    # If we have a cleaned insurance name, use it
+    if cleaned_insurance_tokens:
+        extracted_data['Insurance Company'] = ' '.join(cleaned_insurance_tokens)
+    else:
+        # Fallback to the original extraction
+        extracted_data['Insurance Company'] = insurance_name
+    
+    # Continue with original tokens for the rest of parsing
+    tokens = line_content.split()
+    # Find position after insurance company in original tokens
+    if insurance_parts:
+        for idx, token in enumerate(tokens):
+            if token == insurance_parts[-1]:
+                i = idx + 1
+                break
+    else:
+        i = 0
     
     # Skip Pri/Sec/Oth and E/W/P/F/H indicators
     if i < len(tokens) and tokens[i] in ['Pri', 'Sec', 'Oth']:
