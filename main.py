@@ -140,9 +140,12 @@ def parse_complete_pattern(line_content, account, patient):
     if len(all_dates) == 2:
         # If 2 dates: use first one
         extracted_data['DOS'] = all_dates[0]
-    elif len(all_dates) >= 3:
-        # If 3+ dates: use second one
+    elif len(all_dates) == 3:
+        # If 3 dates: use second one (as before)
         extracted_data['DOS'] = all_dates[1]
+    elif len(all_dates) >= 4:
+        # If 4+ dates: use third one (NEW LOGIC)
+        extracted_data['DOS'] = all_dates[2]
     elif len(all_dates) == 1:
         # If 1 date: use it
         extracted_data['DOS'] = all_dates[0]
