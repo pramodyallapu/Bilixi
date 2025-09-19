@@ -45,11 +45,33 @@ def parse_insurance_claims(text_content):
             continue
             
         # Check if line starts with account and patient name pattern
-        m = re.match(r"^([A-Z]{3,}\d*X?)\s+([A-Z][A-Za-z\.\'\s]+)", line)
+        # Accept only numeric accounts (prevents lines like 'WAITING ...' from being treated as account)
+        # Patient Name may begin with digits (e.g., '458Jose Vasquez'). We'll parse name tokens until the first date.
+        m = re.match(r"^(\d{3,})\s+(.+)$", line)
         if m:
             current_account = m.group(1)
-            current_patient = m.group(2).strip()
-            rest = line[m.end():].strip()
+            remainder = m.group(2).strip()
+
+            # Derive patient name from remainder: collect tokens until a date or Pri/Sec/Oth
+            rem_tokens = remainder.split()
+            patient_tokens = []
+            stop_idx = 0
+            for idx, tok in enumerate(rem_tokens):
+                if re.match(r'\d{2}/\d{2}/\d{2}', tok) or tok in ['Pri', 'Sec', 'Oth']:
+                    stop_idx = idx
+                    break
+                # Accept tokens that contain at least one alphabetic character (may also include digits or hyphens)
+                cleaned = tok.replace('.', '').replace("'", '').replace('-', '').replace(' ', '')
+                if any(ch.isalpha() for ch in cleaned):
+                    patient_tokens.append(tok)
+                    stop_idx = idx + 1
+                else:
+                    # If token has no alpha at all, likely not part of name; stop
+                    break
+
+            current_patient = ' '.join(patient_tokens).strip()
+            # Remainder after removing patient tokens
+            rest = ' '.join(rem_tokens[stop_idx:]).strip()
             
             # Try to parse this line with the complete pattern
             parsed_successfully, extracted_data = parse_complete_pattern(rest, current_account, current_patient)
@@ -134,6 +156,7 @@ def parse_complete_pattern(line_content, account, patient):
     }
     
     # Find all dates in the entire line content (including concatenated dates)
+    # Handle cases where dates are concatenated without spaces (e.g., 09/15/2205/27/25)
     all_dates = re.findall(r'\d{2}/\d{2}/\d{2}', line_content)
     
     # Determine DOS based on number of dates found
@@ -144,7 +167,7 @@ def parse_complete_pattern(line_content, account, patient):
         # If 3 dates: use second one (as before)
         extracted_data['DOS'] = all_dates[1]
     elif len(all_dates) >= 4:
-        # If 4+ dates: use third one (NEW LOGIC)
+        # If 4+ dates: use third one (DOS per requirement)
         extracted_data['DOS'] = all_dates[2]
     elif len(all_dates) == 1:
         # If 1 date: use it
@@ -176,10 +199,10 @@ def parse_complete_pattern(line_content, account, patient):
     cleaned_insurance_tokens = []
     
     # Common insurance company keywords to look for
-    insurance_keywords = ['BLUE', 'CROSS', 'SHIELD', 'MEDICARE', 'MEDICAID', 'AETNA', 
+    insurance_keywords = ['BLUE', 'CROSS', 'SHIELD', 'MEDICARE', 'MEDICAID', 'AETNA',
                          'UNITED', 'HEALTH', 'CIGNA', 'HUMANA', 'ANTHEM', 'WELLCARE',
-                         'CENTENE', 'MOLINA', 'KAISER', 'TRICARE', 'FEDERAL', 'COMMUNITY','SELECTIVE' ,'ADMINISTRATIV'
-                         'MISSISSIPP', 'MISSISSIPPI', 'CARE', 'PLUS', 'PLAN', 'GROUP']
+                         'CENTENE', 'MOLINA', 'KAISER', 'TRICARE', 'FEDERAL', 'COMMUNITY', 'SELECTIVE', 'ADMINISTRATIVE',
+                         'MISSISSIPP', 'MISSISSIPPI', 'CARE', 'PLUS', 'PLAN', 'GROUP', 'BAYLOR', 'SCOTT', 'WHITE']
     
     # Find the start of the actual insurance company name
     start_index = 0
@@ -215,40 +238,57 @@ def parse_complete_pattern(line_content, account, patient):
     if i < len(tokens) and tokens[i] in ['E', 'W', 'P', 'F', 'H']:
         i += 1
         
-    # Get claim amount
+    # Get claim amount (monetary, may include $ and commas)
     if i < len(tokens):
+        amt_token = tokens[i].replace(',', '')
+        amt_token = amt_token.replace('$', '')
         try:
-            extracted_data['Claim Amount'] = float(tokens[i].replace(',', ''))
+            extracted_data['Claim Amount'] = float(amt_token)
             i += 1
-        except:
-            pass
+        except Exception:
+            # Sometimes a status like Replc may appear before amounts; skip non-numeric tokens
+            while i < len(tokens):
+                probe = tokens[i].replace(',', '').replace('$', '')
+                try:
+                    extracted_data['Claim Amount'] = float(probe)
+                    i += 1
+                    break
+                except Exception:
+                    i += 1
             
     # Skip status words like "Hold"
-    status_words = ['Hold', 'WtERA', 'Forwd', 'Paid', 'Denied', 'Rej', 'Reversed', 'Recoup', 'Offset']
+    status_words = ['Hold', 'WtERA', 'Forwd', 'Paid', 'Denied', 'Rej', 'Reversed', 'Recoup', 'Offset', 'Replc']
     if i < len(tokens) and tokens[i] in status_words:
         i += 1
         
-    # Get over due amount
+    # Get over due amount (1-3 digit integer only per requirement)
     if i < len(tokens):
-        try:
-            extracted_data['Over Due'] = float(tokens[i].replace(',', ''))
-            i += 1
-        except:
-            pass
+        overdue_token = tokens[i].replace(',', '').replace('$', '')
+        if re.fullmatch(r'\d{1,3}', overdue_token):
+            try:
+                extracted_data['Over Due'] = int(overdue_token)
+                i += 1
+            except Exception:
+                pass
+        # If current token is not a 1-3 digit overdue, do not consume it; the next is likely Insurance ID
                 
     # Get insurance ID (remaining tokens)
     if i < len(tokens):
+        # Remaining tokens: possibly status then Insurance ID; skip any leftover status markers
+        while i < len(tokens) and tokens[i] in status_words:
+            i += 1
         insurance_id = ' '.join(tokens[i:])
-        # Clean up insurance ID
+        # Clean up insurance ID (first contiguous alnum/underscore/hyphen block)
         m_id = re.match(r'([A-Za-z0-9\-\_]+)', insurance_id)
         if m_id:
             extracted_data['Insurance ID'] = m_id.group(1)
         else:
-            extracted_data['Insurance ID'] = insurance_id
+            extracted_data['Insurance ID'] = insurance_id.strip()
     
-    # Check if we have all essential data
-    if (extracted_data['DOS'] and extracted_data['Insurance Company'] and 
-        extracted_data['Claim Amount'] != ''):
+    # Check if we have all essential data. If no DOS, skip this row entirely per request.
+    if not extracted_data['DOS']:
+        return False, extracted_data
+    if (extracted_data['Insurance Company'] and extracted_data['Claim Amount'] != ''):
         return True, extracted_data
     else:
         return False, extracted_data
@@ -335,12 +375,13 @@ def parse_insurance_claims_layout(pdf_path):
                     
                     # Check if this line starts a new record (has account-like pattern)
                     first_word = line_words[0]['text']
-                    if re.match(r'^[A-Z]{3,}\d*X?$', first_word):
+                    # Start a new record only when the first token is a numeric account id
+                    if re.match(r'^\d{3,}$', first_word):
                         # New record
                         current_account = first_word
                         current_patient = ""
                         
-                        # Try to extract patient name from subsequent words
+                        # Try to extract patient name from subsequent words (can start with digits)
                         if len(line_words) > 1:
                             patient_parts = []
                             for word in line_words[1:]:
@@ -348,7 +389,9 @@ def parse_insurance_claims_layout(pdf_path):
                                 # Stop if we hit a date or other non-name token
                                 if re.match(r'\d{2}/\d{2}/\d{2}', text) or text in ['Pri', 'Sec', 'Oth']:
                                     break
-                                if text.replace('.', '').replace("'", '').replace('-', '').replace(' ', '').isalpha():
+                                cleaned = text.replace('.', '').replace("'", '').replace('-', '').replace(' ', '')
+                                # Accept tokens with at least one alphabetic character (may include digits)
+                                if any(ch.isalpha() for ch in cleaned):
                                     patient_parts.append(text)
                                 else:
                                     break
