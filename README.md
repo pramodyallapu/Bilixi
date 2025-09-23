@@ -50,10 +50,10 @@ You can also use the converter from the command line:
 
 ```bash
 # Convert a specific PDF file
-python main.py "Biloxi 08132025.pdf"
+python main.py "xxxxxxxxxxxxx.pdf"
 
 # Convert with custom output filename
-python main.py "Biloxi 08132025.pdf" "Custom_Output.xlsx"
+python main.py "xxxxxxxxxxxxxxxx.pdf" "xxxxxxxxxxxxxxxxx.xlsx"
 ```
 
 ## File Structure
@@ -99,8 +99,8 @@ The Excel file will contain the following columns:
 
 ## Example
 
-Input PDF: `Biloxi 08132025.pdf`
-Output Excel: `Bilxy 08132025.xlsx`
+Input PDF: `xxxxxxxxxxxxxxxxxx.pdf`
+Output Excel: `xxxxxxxxxxxxxxxxxxx.xlsx`
 
 The application automatically converts "Biloxi" to "Bilxy" in the output filename to match your naming convention.
 "# bilxy" 
