@@ -131,7 +131,7 @@ async def read_root():
         </div>
 
         <!-- Footer -->
-        <footer class="text-center text-gray-500 text-sm p-4 border-t">© 2023 PDF to Excel Converter</footer>
+        <footer class="text-center text-gray-500 text-sm p-4 border-t">© 2025 PDF(Biloxi) to Excel Converter</footer>
     </div>
 
     <!-- JS (same logic) -->
