@@ -37,623 +37,193 @@ async def read_root():
     <!DOCTYPE html>
     <html lang="en">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Insurance Claims PDF to Excel Converter</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <style>
-            :root {
-                --primary: #4361ee;
-                --primary-dark: #3a56d4;
-                --secondary: #7209b7;
-                --success: #06d6a0;
-                --warning: #ffd166;
-                --error: #ef476f;
-                --light: #f8f9fa;
-                --dark: #212529;
-                --gray: #6c757d;
-                --border-radius: 12px;
-                --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-                --transition: all 0.3s ease;
-            }
-            
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
-                color: var(--dark);
-                line-height: 1.6;
-                min-height: 100vh;
-                padding: 20px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .container {
-                width: 100%;
-                max-width: 900px;
-                background: white;
-                border-radius: var(--border-radius);
-                box-shadow: var(--box-shadow);
-                overflow: hidden;
-                margin: 20px;
-            }
-            
-            header {
-                background: linear-gradient(to right, var(--primary), var(--secondary));
-                color: white;
-                padding: 30px;
-                text-align: center;
-            }
-            
-            header h1 {
-                font-size: 2.2rem;
-                margin-bottom: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-            }
-            
-            header p {
-                font-size: 1.1rem;
-                opacity: 0.9;
-            }
-            
-            .content {
-                padding: 30px;
-            }
-            
-            .card {
-                background: var(--light);
-                border-radius: var(--border-radius);
-                padding: 25px;
-                margin-bottom: 25px;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            }
-            
-            h2 {
-                color: var(--primary);
-                margin-bottom: 15px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .upload-area {
-                border: 2px dashed #ccc;
-                border-radius: var(--border-radius);
-                padding: 40px 20px;
-                text-align: center;
-                margin: 20px 0;
-                transition: var(--transition);
-                cursor: pointer;
-                position: relative;
-            }
-            
-            .upload-area:hover, .upload-area.dragover {
-                border-color: var(--primary);
-                background-color: rgba(67, 97, 238, 0.05);
-            }
-            
-            .upload-area i {
-                font-size: 3rem;
-                color: var(--primary);
-                margin-bottom: 15px;
-            }
-            
-            .upload-area p {
-                margin: 10px 0;
-                color: var(--gray);
-            }
-            
-            .upload-area .browse {
-                color: var(--primary);
-                font-weight: 600;
-            }
-            
-            #pdfFile {
-                display: none;
-            }
-            
-            .file-info {
-                display: none;
-                margin-top: 15px;
-                padding: 15px;
-                background: white;
-                border-radius: var(--border-radius);
-                border-left: 4px solid var(--primary);
-            }
-            
-            .file-info.active {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-            }
-            
-            .file-info i {
-                font-size: 2rem;
-                color: var(--primary);
-            }
-            
-            .file-details {
-                flex-grow: 1;
-            }
-            
-            .file-name {
-                font-weight: 600;
-                margin-bottom: 5px;
-            }
-            
-            .file-size {
-                color: var(--gray);
-                font-size: 0.9rem;
-            }
-            
-            .remove-btn {
-                background: none;
-                border: none;
-                color: var(--gray);
-                cursor: pointer;
-                font-size: 1.2rem;
-                transition: var(--transition);
-            }
-            
-            .remove-btn:hover {
-                color: #dc3545;
-            }
-            
-            button {
-                background: var(--primary);
-                color: white;
-                padding: 14px 28px;
-                border: none;
-                border-radius: 50px;
-                cursor: pointer;
-                font-size: 1.1rem;
-                font-weight: 600;
-                transition: var(--transition);
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                width: 100%;
-                box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-            }
-            
-            button:hover {
-                background: var(--primary-dark);
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
-            }
-            
-            button:disabled {
-                background: var(--gray);
-                cursor: not-allowed;
-                transform: none;
-                box-shadow: none;
-            }
-            
-            .result {
-                margin-top: 25px;
-                padding: 20px;
-                border-radius: var(--border-radius);
-                background: white;
-                display: none;
-                border-left: 4px solid var(--success);
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            }
-            
-            .result.success {
-                display: block;
-                border-left-color: var(--success);
-            }
-            
-            .result.error {
-                display: block;
-                border-left-color: var(--error);
-            }
-            
-            .result.warning {
-                display: block;
-                border-left-color: var(--warning);
-            }
-            
-            .progress {
-                margin-top: 20px;
-                display: none;
-            }
-            
-            .progress-bar {
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
-                overflow: hidden;
-            }
-            
-            .progress-bar-fill {
-                height: 100%;
-                background: linear-gradient(to right, var(--primary), var(--secondary));
-                width: 0%;
-                transition: width 0.4s ease;
-            }
-            
-            .progress-text {
-                text-align: center;
-                margin-top: 10px;
-                color: var(--gray);
-                font-size: 0.9rem;
-            }
-            
-            .download-btn {
-                margin-top: 15px;
-                background: var(--success);
-                display: none;
-            }
-            
-            .download-btn:hover {
-                background: #05b387;
-            }
-            
-            .features {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
-                margin-top: 30px;
-            }
-            
-            .feature {
-                display: flex;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            
-            .feature i {
-                background: var(--primary);
-                color: white;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-shrink: 0;
-            }
-            
-            footer {
-                text-align: center;
-                margin-top: 30px;
-                color: var(--gray);
-                font-size: 0.9rem;
-            }
-            
-            @media (max-width: 768px) {
-                header {
-                    padding: 20px;
-                }
-                
-                header h1 {
-                    font-size: 1.8rem;
-                }
-                
-                .content {
-                    padding: 20px;
-                }
-                
-                .features {
-                    grid-template-columns: 1fr;
-                }
-            }
-        </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PDF to Excel Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
     </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1><i class="fas fa-file-excel"></i> PDF to Excel Converter</h1>
-                <p>Transform your Insurance Claims PDF documents into organized Excel spreadsheets</p>
-            </header>
+    <body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-lg overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center p-8">
+        <h1 class="text-2xl md:text-3xl font-bold flex justify-center items-center gap-3">
+            <i class="fas fa-file-excel"></i> PDF to Excel Converter
+        </h1>
+        <p class="mt-2 opacity-90">Convert Insurance Claims PDF to Excel in seconds</p>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6 space-y-6">
+        
+        <!-- Upload Card -->
+        <div class="bg-gray-50 rounded-xl p-6 shadow-sm">
+            <h2 class="text-indigo-600 text-lg font-semibold flex items-center gap-2">
+            <i class="fas fa-upload"></i> Upload PDF File
+            </h2>
+            <p class="text-gray-600 text-sm mt-1">Drag & drop or browse to upload your claims PDF</p>
             
-            <div class="content">
-                <div class="card">
-                    <h2><i class="fas fa-upload"></i> Upload PDF File</h2>
-                    <p>Select your insurance claims PDF document or drag and drop it below</p>
-                    
-                    <div class="upload-area" id="dropArea">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Drag & drop your PDF file here</p>
-                        <p>or</p>
-                        <p class="browse">Browse files</p>
-                        <input type="file" id="pdfFile" name="file" accept=".pdf">
-                    </div>
-                    
-                    <div class="file-info" id="fileInfo">
-                        <i class="fas fa-file-pdf"></i>
-                        <div class="file-details">
-                            <div class="file-name" id="fileName">document.pdf</div>
-                            <div class="file-size" id="fileSize">0 KB</div>
-                        </div>
-                        <button class="remove-btn" id="removeFile">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <button id="convertBtn" disabled>
-                        <i class="fas fa-sync-alt"></i> Convert to Excel
-                    </button>
-                    
-                    <div class="progress" id="progressContainer">
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" id="progressBar"></div>
-                        </div>
-                        <div class="progress-text" id="progressText">Processing... 0%</div>
-                    </div>
-                    
-                    <div class="result" id="result"></div>
-                </div>
-                
-                <h2><i class="fas fa-star"></i> Why Choose Our Converter</h2>
-                <div class="features">
-                    <div class="feature">
-                        <i class="fas fa-shield-alt"></i>
-                        <div>
-                            <h3>Secure Processing</h3>
-                            <p>Your files are processed securely and never stored on our servers</p>
-                        </div>
-                    </div>
-                    <div class="feature">
-                        <i class="fas fa-bolt"></i>
-                        <div>
-                            <h3>Fast Conversion</h3>
-                            <p>Advanced algorithms ensure quick conversion even for large files</p>
-                        </div>
-                    </div>
-                    <div class="feature">
-                        <i class="fas fa-chart-line"></i>
-                        <div>
-                            <h3>Accurate Data</h3>
-                            <p>Maintain data integrity with precise table recognition technology</p>
-                        </div>
-                    </div>
-                </div>
+            <div id="dropArea" class="mt-4 border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition">
+            <i class="fas fa-cloud-upload-alt text-4xl text-indigo-500"></i>
+            <p class="mt-2 text-gray-600">Drag & drop PDF here or <span class="text-indigo-600 font-semibold">Browse</span></p>
+            <input type="file" id="pdfFile" name="file" accept=".pdf" class="hidden"/>
             </div>
-            
-            <footer>
-                <p>© 2023 PDF to Excel Converter. All rights reserved.</p>
-            </footer>
+
+            <!-- File Info -->
+            <div id="fileInfo" class="hidden mt-4 flex items-center gap-3 bg-white border-l-4 border-indigo-500 rounded-lg p-3 shadow">
+            <i class="fas fa-file-pdf text-indigo-500 text-2xl"></i>
+            <div class="flex-1">
+                <p id="fileName" class="font-semibold">document.pdf</p>
+                <p id="fileSize" class="text-sm text-gray-500">0 KB</p>
+            </div>
+            <button id="removeFile" class="text-gray-400 hover:text-red-500 transition">
+                <i class="fas fa-times"></i>
+            </button>
+            </div>
+
+            <!-- Convert Button -->
+            <button id="convertBtn" disabled class="mt-4 w-full bg-indigo-600 text-white py-3 rounded-full font-semibold shadow-md hover:bg-indigo-700 transition flex justify-center items-center gap-2">
+            <i class="fas fa-sync-alt"></i> Convert to Excel
+            </button>
+
+            <!-- Progress -->
+            <div id="progressContainer" class="hidden mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full w-0"></div>
+            </div>
+            <p id="progressText" class="text-center text-sm text-gray-600 mt-2">Processing... 0%</p>
+            </div>
+
+            <!-- Result -->
+            <div id="result" class="hidden mt-4 p-4 rounded-lg shadow text-sm"></div>
         </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const dropArea = document.getElementById('dropArea');
-                const fileInput = document.getElementById('pdfFile');
-                const fileInfo = document.getElementById('fileInfo');
-                const fileName = document.getElementById('fileName');
-                const fileSize = document.getElementById('fileSize');
-                const removeFile = document.getElementById('removeFile');
-                const convertBtn = document.getElementById('convertBtn');
-                const result = document.getElementById('result');
-                const progressContainer = document.getElementById('progressContainer');
-                const progressBar = document.getElementById('progressBar');
-                const progressText = document.getElementById('progressText');
-                
-                let selectedFile = null;
-                
-                // Click on drop area to trigger file input
-                dropArea.addEventListener('click', () => {
-                    fileInput.click();
-                });
-                
-                // Prevent default drag behaviors
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, preventDefaults, false);
-                    document.body.addEventListener(eventName, preventDefaults, false);
-                });
-                
-                // Highlight drop area when file is dragged over it
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, highlight, false);
-                });
-                
-                ['dragleave', 'drop'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, unhighlight, false);
-                });
-                
-                // Handle dropped files
-                dropArea.addEventListener('drop', handleDrop, false);
-                
-                // Handle file selection via input
-                fileInput.addEventListener('change', handleFileSelect, false);
-                
-                // Remove selected file
-                removeFile.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    resetFile();
-                });
-                
-                // Convert button click
-                convertBtn.addEventListener('click', convertFile);
-                
-                function preventDefaults(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                
-                function highlight() {
-                    dropArea.classList.add('dragover');
-                }
-                
-                function unhighlight() {
-                    dropArea.classList.remove('dragover');
-                }
-                
-                function handleDrop(e) {
-                    const dt = e.dataTransfer;
-                    const files = dt.files;
-                    
-                    if (files.length > 0) {
-                        handleFiles(files[0]);
-                    }
-                }
-                
-                function handleFileSelect() {
-                    if (fileInput.files.length > 0) {
-                        handleFiles(fileInput.files[0]);
-                    }
-                }
-                
-                function handleFiles(file) {
-                    if (file.type !== 'application/pdf') {
-                        showResult('Please select a PDF file.', 'error');
-                        return;
-                    }
-                    
-                    selectedFile = file;
-                    fileName.textContent = file.name;
-                    fileSize.textContent = formatFileSize(file.size);
-                    fileInfo.classList.add('active');
-                    convertBtn.disabled = false;
-                    
-                    // Hide any previous results
-                    result.style.display = 'none';
-                }
-                
-                function resetFile() {
-                    selectedFile = null;
-                    fileInput.value = '';
-                    fileInfo.classList.remove('active');
-                    convertBtn.disabled = true;
-                    progressContainer.style.display = 'none';
-                    result.style.display = 'none';
-                }
-                
-                function formatFileSize(bytes) {
-                    if (bytes === 0) return '0 Bytes';
-                    
-                    const k = 1024;
-                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                }
-                
-                function simulateProgress() {
-                    let progress = 0;
-                    progressContainer.style.display = 'block';
-                    
-                    const interval = setInterval(() => {
-                        progress += Math.random() * 10;
-                        if (progress >= 100) {
-                            progress = 100;
-                            clearInterval(interval);
-                            progressBar.style.width = '100%';
-                            progressText.textContent = 'Processing... 100%';
-                        } else {
-                            progressBar.style.width = progress + '%';
-                            progressText.textContent = `Processing... ${Math.round(progress)}%`;
-                        }
-                    }, 300);
-                }
-                
-                function convertFile() {
-                    if (!selectedFile) {
-                        showResult('Please select a PDF file first.', 'error');
-                        return;
-                    }
-                    
-                    // Create FormData object to send file
-                    const formData = new FormData();
-                    formData.append('file', selectedFile);
-                    
-                    // Show progress
-                    simulateProgress();
-                    
-                    // Send the file to the server
-                    fetch('/upload/', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        // Store response for use in the next then block
-                        const responseClone = response.clone();
-                        
-                        if (response.ok) {
-                            return response.blob().then(blob => {
-                                return { blob, response: responseClone };
-                            });
-                        }
-                        return response.text().then(text => {
-                            throw new Error(text || 'Conversion failed');
-                        });
-                    })
-                    .then(({ blob, response }) => {
-                        // Create download URL
-                        const url = window.URL.createObjectURL(blob);
-                        
-                        // Get filename from response headers
-                        const contentDisposition = response.headers.get('content-disposition');
-                        let filename = 'insurance_claims.xlsx';
-                        
-                        if (contentDisposition) {
-                            // Try multiple patterns for filename extraction
-                            let filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-                            if (!filenameMatch) {
-                                filenameMatch = contentDisposition.match(/filename=([^;]+)/);
-                            }
-                            if (filenameMatch) {
-                                filename = filenameMatch[1].trim();
-                            }
-                        }
-                        
-                        // Create a temporary anchor element for download
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        
-                        // Clean up URL
-                        window.URL.revokeObjectURL(url);
-                        
-                        // Hide progress
-                        progressContainer.style.display = 'none';
-                        
-                        // Show success message
-                        result.innerHTML = `
-                            <h3><i class="fas fa-check-circle"></i> Conversion Successful!</h3>
-                            <p>Your file "${selectedFile.name}" has been converted to Excel format.</p>
-                            <p>Downloaded as: <strong>${filename}</strong></p>
-                        `;
-                        result.classList.add('success');
-                        result.style.display = 'block';
-                    })
-                    .catch(error => {
-                        // Hide progress
-                        progressContainer.style.display = 'none';
-                        
-                        // Show error
-                        showResult('Error: ' + error.message, 'error');
-                    });
-                }
-                
-                function showResult(message, type) {
-                    result.innerHTML = `<p>${message}</p>`;
-                    result.className = 'result';
-                    result.classList.add(type);
-                    result.style.display = 'block';
-                    
-                    // Scroll to result
-                    result.scrollIntoView({ behavior: 'smooth' });
-                }
+        <!-- Features -->
+        <div>
+            <h2 class="text-indigo-600 text-lg font-semibold flex items-center gap-2">
+            <i class="fas fa-star"></i> Why Choose Us
+            </h2>
+            <div class="grid md:grid-cols-3 gap-6 mt-4">
+            <div class="flex gap-3">
+                <i class="fas fa-shield-alt bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-full"></i>
+                <div>
+                <h3 class="font-semibold">Secure</h3>
+                <p class="text-sm text-gray-600">Your files are processed safely, never stored.</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <i class="fas fa-bolt bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-full"></i>
+                <div>
+                <h3 class="font-semibold">Fast</h3>
+                <p class="text-sm text-gray-600">Quick conversion even for large PDFs.</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <i class="fas fa-chart-line bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-full"></i>
+                <div>
+                <h3 class="font-semibold">Accurate</h3>
+                <p class="text-sm text-gray-600">Precise table recognition keeps your data intact.</p>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm p-4 border-t">© 2023 PDF to Excel Converter</footer>
+    </div>
+
+    <!-- JS (same logic) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('pdfFile');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFile = document.getElementById('removeFile');
+        const convertBtn = document.getElementById('convertBtn');
+        const result = document.getElementById('result');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        let selectedFile = null;
+
+        dropArea.addEventListener('click', () => fileInput.click());
+        ['dragenter','dragover','dragleave','drop'].forEach(e => {
+            dropArea.addEventListener(e, ev => {ev.preventDefault(); ev.stopPropagation();});
+        });
+        dropArea.addEventListener('drop', e => handleFiles(e.dataTransfer.files[0]));
+        fileInput.addEventListener('change', () => fileInput.files[0] && handleFiles(fileInput.files[0]));
+        removeFile.addEventListener('click', e => {e.stopPropagation(); resetFile();});
+        convertBtn.addEventListener('click', convertFile);
+
+        function handleFiles(file) {
+            if (file.type !== 'application/pdf') return showResult('Please select a PDF file.', 'bg-red-100 text-red-600');
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatSize(file.size);
+            fileInfo.classList.remove('hidden');
+            convertBtn.disabled = false;
+            result.classList.add('hidden');
+        }
+
+        function resetFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+            convertBtn.disabled = true;
+            progressContainer.classList.add('hidden');
+            result.classList.add('hidden');
+        }
+
+        function formatSize(bytes) {
+            const sizes = ['Bytes','KB','MB','GB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = Math.floor(Math.log(bytes)/Math.log(1024));
+            return (bytes/Math.pow(1024,i)).toFixed(2)+' '+sizes[i];
+        }
+
+        function simulateProgress(cb) {
+            let p = 0; progressContainer.classList.remove('hidden');
+            const interval = setInterval(() => {
+            p+=Math.random()*15;
+            if(p>=100){p=100; clearInterval(interval); cb();}
+            progressBar.style.width=p+'%';
+            progressText.textContent=`Processing... ${Math.round(p)}%`;
+            },300);
+        }
+
+        function convertFile() {
+            if(!selectedFile) return showResult('Please select a file.', 'bg-red-100 text-red-600');
+            const formData=new FormData(); formData.append('file',selectedFile);
+            simulateProgress(()=>{
+            fetch('/upload/',{method:'POST',body:formData})
+            .then(r=>r.ok?r.blob():Promise.reject('Conversion failed'))
+            .then(blob=>{
+                const url=URL.createObjectURL(blob);
+                const a=document.createElement('a');
+                a.href=url; a.download='insurance_claims.xlsx'; a.click();
+                URL.revokeObjectURL(url);
+                showResult(`✅ ${selectedFile.name} converted successfully.`, 'bg-green-100 text-green-600');
+                progressContainer.classList.add('hidden');
+            })
+            .catch(err=>{
+                progressContainer.classList.add('hidden');
+                showResult('Error: '+err,'bg-red-100 text-red-600');
             });
-        </script>
+            });
+        }
+
+        function showResult(msg, style) {
+            result.className=`mt-4 p-4 rounded-lg shadow text-sm ${style}`;
+            result.textContent=msg;
+            result.classList.remove('hidden');
+        }
+        });
+    </script>
     </body>
     </html>
     """
