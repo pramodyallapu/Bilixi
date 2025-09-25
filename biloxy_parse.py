@@ -43,6 +43,9 @@ def parse_insurance_claims(text_content):
         # Skip header/footer lines
         if any(word in line for word in ["Murphy", "Page:", "Overdue", "Unpaid", "Insurance", "Report Date", "System:", "Time:", "Run:"]):
             continue
+
+        # Insert a space between account number and patient name if it's missing
+        line = re.sub(r'(?<=[0-9X])(?=[A-Z])', ' ', line, 1)
             
         # Check if line starts with account and patient name pattern
         m = re.match(r"^([A-Z]{3,}\d*X?)\s+([A-Z][A-Za-z\.\'\s]+)", line)
@@ -101,7 +104,7 @@ def has_complete_data_row_structure(line_content):
     has_date = any(re.match(r'\d{2}/\d{2}/\d{2}', token) for token in tokens)
     
     # Look for monetary values (Claim Amount and Over Due fields)
-    has_monetary_values = len([token for token in tokens if re.match(r'^\$?[\d,]+\.?\d*$', token)]) >= 2
+    has_monetary_values = len([token for token in tokens if re.match(r'^\$?["\d,"]+\.?\d*$', token)]) >= 2
     
     # Look for insurance company (multiple words before indicators)
     has_insurance_company = False
@@ -240,7 +243,7 @@ def parse_complete_pattern(line_content, account, patient):
     if i < len(tokens):
         insurance_id = ' '.join(tokens[i:])
         # Clean up insurance ID
-        m_id = re.match(r'([A-Za-z0-9\-\_]+)', insurance_id)
+        m_id = re.match(r'([A-Za-z0-9\-_]+)', insurance_id)
         if m_id:
             extracted_data['Insurance ID'] = m_id.group(1)
         else:
