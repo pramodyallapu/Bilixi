@@ -52,6 +52,12 @@ def parse_insurance_claims(text_content):
         if m:
             current_account = m.group(1)
             current_patient = m.group(2).strip()
+
+            # Handle cases where 'X' is incorrectly attached to the patient name
+            if current_patient.startswith('X') and not current_account.endswith('X'):
+                current_account += 'X'
+                current_patient = current_patient[1:].lstrip()
+
             rest = line[m.end():].strip()
             
             # Try to parse this line with the complete pattern
