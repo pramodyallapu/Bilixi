@@ -15,6 +15,7 @@ from typing import List, Dict, Tuple
 # Import parsing functions from separate modules
 import biloxy_parse
 import paul_parse
+import unpaid_charges_parse
 
 app = FastAPI()
 
@@ -82,9 +83,13 @@ async def read_root():
             </button>
             </div>
 
-            <!-- Convert Button -->
+            <!-- Convert Buttons -->
             <button id="convertBtn" disabled class="mt-4 w-full bg-indigo-600 text-white py-3 rounded-full font-semibold shadow-md hover:bg-indigo-700 transition flex justify-center items-center gap-2">
             <i class="fas fa-sync-alt"></i> Convert to Excel
+            </button>
+            
+            <button id="convertUnpaidBtn" disabled class="mt-2 w-full bg-green-600 text-white py-3 rounded-full font-semibold shadow-md hover:bg-green-700 transition flex justify-center items-center gap-2">
+            <i class="fas fa-file-invoice-dollar"></i> Convert Unpaid Charges
             </button>
 
             <!-- Progress -->
@@ -144,6 +149,7 @@ async def read_root():
         const fileSize = document.getElementById('fileSize');
         const removeFile = document.getElementById('removeFile');
         const convertBtn = document.getElementById('convertBtn');
+        const convertUnpaidBtn = document.getElementById('convertUnpaidBtn');
         const result = document.getElementById('result');
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
@@ -159,6 +165,7 @@ async def read_root():
         fileInput.addEventListener('change', () => fileInput.files[0] && handleFiles(fileInput.files[0]));
         removeFile.addEventListener('click', e => {e.stopPropagation(); resetFile();});
         convertBtn.addEventListener('click', convertFile);
+        convertUnpaidBtn.addEventListener('click', convertUnpaidFile);
 
         function handleFiles(file) {
             if (file.type !== 'application/pdf') return showResult('Please select a PDF file.', 'bg-red-100 text-red-600');
@@ -167,6 +174,7 @@ async def read_root():
             fileSize.textContent = formatSize(file.size);
             fileInfo.classList.remove('hidden');
             convertBtn.disabled = false;
+            convertUnpaidBtn.disabled = false;
             result.classList.add('hidden');
         }
 
@@ -175,6 +183,7 @@ async def read_root():
             fileInput.value = '';
             fileInfo.classList.add('hidden');
             convertBtn.disabled = true;
+            convertUnpaidBtn.disabled = true;
             progressContainer.classList.add('hidden');
             result.classList.add('hidden');
         }
@@ -197,17 +206,25 @@ async def read_root():
         }
 
         function convertFile() {
+            processFile('/upload/', 'insurance_claims.xlsx', 'Insurance Claims');
+        }
+        
+        function convertUnpaidFile() {
+            processFile('/upload-unpaid/', 'unpaid_charges.xlsx', 'Unpaid Charges');
+        }
+        
+        function processFile(endpoint, defaultFilename, type) {
             if(!selectedFile) return showResult('Please select a file.', 'bg-red-100 text-red-600');
             const formData=new FormData(); formData.append('file',selectedFile);
             simulateProgress(()=>{
-            fetch('/upload/',{method:'POST',body:formData})
+            fetch(endpoint,{method:'POST',body:formData})
             .then(r=>r.ok?r.blob():Promise.reject('Conversion failed'))
             .then(blob=>{
                 const url=URL.createObjectURL(blob);
                 const a=document.createElement('a');
-                a.href=url; a.download='insurance_claims.xlsx'; a.click();
+                a.href=url; a.download=defaultFilename; a.click();
                 URL.revokeObjectURL(url);
-                showResult(`✅ ${selectedFile.name} converted successfully.`, 'bg-green-100 text-green-600');
+                showResult(`✅ ${selectedFile.name} converted to ${type} successfully.`, 'bg-green-100 text-green-600');
                 progressContainer.classList.add('hidden');
             })
             .catch(err=>{
@@ -322,6 +339,56 @@ async def upload_file(file: UploadFile = File(...)):
     
     finally:
         # Only clean up PDF file
+        if temp_pdf_path and os.path.exists(temp_pdf_path):
+            os.unlink(temp_pdf_path)
+
+@app.post("/upload-unpaid/")
+async def upload_unpaid_charges(file: UploadFile = File(...)):
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    temp_pdf_path = None
+    temp_xlsx_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+            content = await file.read()
+            temp_pdf.write(content)
+            temp_pdf_path = temp_pdf.name
+
+        text_content = unpaid_charges_parse.extract_text_from_pdf(temp_pdf_path)
+        if not text_content.strip():
+            raise HTTPException(status_code=400, detail="No text extracted from PDF")
+
+        charges_data = unpaid_charges_parse.parse_unpaid_charges(text_content)
+        
+        if not charges_data:
+            raise HTTPException(status_code=400, detail="No unpaid charges data found in PDF")
+
+        base_name = file.filename.rsplit('.', 1)[0]
+        output_filename = f"{base_name}_unpaid_charges.xlsx"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_xlsx:
+            temp_xlsx_path = temp_xlsx.name
+
+        unpaid_charges_parse.create_xlsx_file(charges_data, temp_xlsx_path)
+
+        response = FileResponse(
+            temp_xlsx_path,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename=output_filename
+        )
+        response.headers["Content-Disposition"] = f'attachment; filename="{output_filename}"'
+        return response
+    
+    except Exception as e:
+        if temp_pdf_path and os.path.exists(temp_pdf_path):
+            os.unlink(temp_pdf_path)
+        if temp_xlsx_path and os.path.exists(temp_xlsx_path):
+            os.unlink(temp_xlsx_path)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
         if temp_pdf_path and os.path.exists(temp_pdf_path):
             os.unlink(temp_pdf_path)
 
