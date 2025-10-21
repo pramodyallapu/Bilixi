@@ -30,6 +30,8 @@ def parse_unpaid_charges(text_content):
     
 
     
+
+    
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -106,11 +108,11 @@ def parse_unpaid_charges(text_content):
                         if re.match(r'^\d+\.\d{2}$', tokens[idx]):
                             amount_indices.append(idx)
                     
-                    # Find units (1-2 digit number before last amount)
-                    if len(amount_indices) > 0:
-                        last_amount_idx = amount_indices[-1]
-                        for idx in range(last_amount_idx-1, -1, -1):
-                            if re.match(r'^\d{1,2}$', tokens[idx]):
+                    # Find units (1-2 digit number, search from end backwards)
+                    for idx in range(len(tokens)-1, -1, -1):
+                        if re.match(r'^\d{1,2}$', tokens[idx]):
+                            # Make sure it's not a date part or patient number
+                            if idx > 2 and not re.match(r'^\d{2}/\d{2}/\d{4}$', tokens[idx-1] if idx > 0 else ''):
                                 units_idx = idx
                                 break
                     
@@ -141,6 +143,8 @@ def parse_unpaid_charges(text_content):
                     
                     # Patient Name - between single letter and units
                     patient_name = ""
+
+                    
                     if single_letter_idx > 0 and units_idx > 0:
                         name_parts = []
                         for idx in range(single_letter_idx + 1, units_idx):
@@ -153,6 +157,31 @@ def parse_unpaid_charges(text_content):
                         while name_tokens and len(name_tokens[0]) == 1 and name_tokens[0].isalpha():
                             name_tokens.pop(0)
                         patient_name = ' '.join(name_tokens)
+
+                    elif units_idx > 0:
+                        # Fallback: look for name pattern before units
+                        name_parts = []
+                        # Look for comma-containing tokens or name-like patterns
+                        start_search = len(amount_indices) if amount_indices else 8
+                        for idx in range(start_search, units_idx):
+                            if idx < len(tokens):
+                                token = tokens[idx]
+                                # Start collecting from comma or name-like token
+                                if ',' in token or (len(token) > 2 and not token.isupper()):
+                                    for name_idx in range(idx, units_idx):
+                                        if name_idx < len(tokens):
+                                            name_parts.append(tokens[name_idx])
+                                    break
+                        
+                        if name_parts:
+                            full_name = ' '.join(name_parts).rstrip(',')
+                            name_tokens = full_name.split()
+                            while name_tokens and len(name_tokens[0]) == 1 and name_tokens[0].isalpha():
+                                name_tokens.pop(0)
+                            patient_name = ' '.join(name_tokens)
+
+                    else:
+                        pass
                     
                     # Units
                     units = tokens[units_idx] if units_idx > 0 else ""
@@ -198,6 +227,8 @@ def parse_unpaid_charges(text_content):
                     pass
         
         i += 1
+    
+
     
 
     
