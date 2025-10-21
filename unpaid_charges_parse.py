@@ -146,7 +146,13 @@ def parse_unpaid_charges(text_content):
                         for idx in range(single_letter_idx + 1, units_idx):
                             if idx < len(tokens):
                                 name_parts.append(tokens[idx])
-                        patient_name = ' '.join(name_parts).rstrip(',')
+                        full_name = ' '.join(name_parts).rstrip(',')
+                        
+                        # Remove single alphabetic characters at the beginning
+                        name_tokens = full_name.split()
+                        while name_tokens and len(name_tokens[0]) == 1 and name_tokens[0].isalpha():
+                            name_tokens.pop(0)
+                        patient_name = ' '.join(name_tokens)
                     
                     # Units
                     units = tokens[units_idx] if units_idx > 0 else ""
